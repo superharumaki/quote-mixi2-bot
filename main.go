@@ -96,9 +96,7 @@ func main() {
 
 	client := application_apiv1.NewApplicationServiceClient(conn)
 
-	text := "今日の一言“φ(･ω･｡)\n\n" +
-		"「" + q.Text + "」\n" +
-		"— " + q.Author
+	text := q.Text + "\n\n" + q.Author
 
 	_, err = client.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
 		Text: text,
