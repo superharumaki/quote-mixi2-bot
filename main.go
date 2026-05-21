@@ -94,14 +94,14 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := application_apiv1.NewApplicationAPIServiceClient(conn)
+	client := application_apiv1.NewApplicationServiceClient(conn)
 
 	text := "今日の一言“φ(･ω･｡)\n\n" +
 		"「" + q.Text + "」\n" +
 		"— " + q.Author
 
 	_, err = client.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
-		Content: text,
+		Text: text,
 	})
 	if err != nil {
 		log.Fatal(err)
