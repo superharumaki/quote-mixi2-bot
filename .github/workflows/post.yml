@@ -2,13 +2,15 @@ name: Quote Bot
 
 on:
   schedule:
-    - cron: '22 21 * * *'
+    - cron: '19 21 * * *'
   workflow_dispatch:
 
 jobs:
   post:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -29,3 +31,11 @@ jobs:
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           TOKEN_URL: https://application-auth.mixi.social/oauth2/token
           API_ADDRESS: application-api.mixi.social:443
+
+      - name: Commit state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || git commit -m "update state"
+          git push

@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"log"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/mixigroup/mixi2-application-sdk-go/auth"
 	application_apiv1 "github.com/mixigroup/mixi2-application-sdk-go/gen/go/social/mixi/application/service/application_api/v1"
@@ -20,6 +19,12 @@ type Quote struct {
 	Author string
 }
 
+type State struct {
+	Index int `json:"index"`
+}
+
+const stateFile = "state.json"
+
 var quotes = []Quote{
 	{"僕もね、一応ハーフなんです。ええ。おやじが滋賀県で、おふくろが岩手県。", "2015-02-26 関西テレビ よ～いドン！"},
 	{"僕、森川さん好きですよ、大好き。", "2007-10-23 笑っていいとも！"},
@@ -27,8 +32,43 @@ var quotes = []Quote{
 	{"いやぁ、しかしね（君は薔薇より美しいを）歌って気持ちいって言われるとホントにもぅ悔しいよねぇ。歌ってこんなに辛いもんだっての分からせたいよ君らに。へへへへｗ", "2015-03-22 東海ラジオ 源石和輝音楽博覧会"},
 }
 
+func loadState() State {
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		return State{Index: 0}
+	}
+
+	var s State
+	if err := json.Unmarshal(data, &s); err != nil {
+		return State{Index: 0}
+	}
+
+	return s
+}
+
+func saveState(s State) {
+	data, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := os.WriteFile(stateFile, data, 0644); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
-	rand.Seed(time.Now().UnixNano())
+	if len(quotes) == 0 {
+		log.Fatal("名言が登録されていません")
+	}
+
+	state := loadState()
+
+	if state.Index < 0 || state.Index >= len(quotes) {
+		state.Index = 0
+	}
+
+	q := quotes[state.Index]
 
 	authenticator, err := auth.NewAuthenticator(
 		os.Getenv("CLIENT_ID"),
@@ -55,9 +95,7 @@ func main() {
 
 	client := application_apiv1.NewApplicationAPIServiceClient(conn)
 
-	q := quotes[rand.Intn(len(quotes))]
-
-	text := "今日の名言\n\n" +
+	text := "今日の一言“φ(･ω･｡)\n\n" +
 		"「" + q.Text + "」\n" +
 		"— " + q.Author
 
@@ -67,6 +105,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	state.Index++
+	if state.Index >= len(quotes) {
+		state.Index = 0
+	}
+
+	saveState(state)
 
 	log.Println("投稿成功:", q.Text)
 }
