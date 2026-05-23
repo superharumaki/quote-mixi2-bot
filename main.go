@@ -17,19 +17,31 @@ import (
 )
 
 type Quote struct {
-	Text   string
-	Author string
+	Text   string `json:"text"`
+	Author string `json:"author"`
 }
 
 type State struct {
 	PostedIndexes []int `json:"posted_indexes"`
 }
 
-const stateFile = "state.json"
+const (
+	stateFile  = "state.json"
+	quotesFile = "quotes.json"
+)
 
-var quotes = []Quote{
-	{"（落葉が雪にを）六畳一間の高田馬場のアパートのベットに座ってギターを弾きながら作ったとは思えないでしょ。ええそうなんです。酒飲みな、酒飲みながら。毎日一曲っていうのを作ってた中の一曲なんです。", "2025-03-20 ラジオ日本 きのうの続きのつづき"},
-	{"いやぁ、しかしね（君は薔薇より美しいを）歌って気持ちいって言われるとホントにもぅ悔しいよねぇ。歌ってこんなに辛いもんだっての分からせたいよ君らに。へへへへｗ", "2015-03-22 東海ラジオ 源石和輝音楽博覧会"},
+func loadQuotes() []Quote {
+	data, err := os.ReadFile(quotesFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var quotes []Quote
+	if err := json.Unmarshal(data, &quotes); err != nil {
+		log.Fatal(err)
+	}
+
+	return quotes
 }
 
 func loadState() State {
@@ -66,16 +78,19 @@ func contains(list []int, target int) bool {
 	return false
 }
 
-func pickRandomQuoteIndex(state State) int {
-	if len(state.PostedIndexes) >= len(quotes) {
-		state.PostedIndexes = []int{}
-	}
-
+func pickRandomQuoteIndex(quotes []Quote, state State) int {
 	available := []int{}
 
 	for i := range quotes {
 		if !contains(state.PostedIndexes, i) {
 			available = append(available, i)
+		}
+	}
+
+	if len(available) == 0 {
+		available = make([]int, len(quotes))
+		for i := range quotes {
+			available[i] = i
 		}
 	}
 
@@ -85,6 +100,8 @@ func pickRandomQuoteIndex(state State) int {
 }
 
 func main() {
+	quotes := loadQuotes()
+
 	if len(quotes) == 0 {
 		log.Fatal("名言が登録されていません")
 	}
@@ -95,7 +112,7 @@ func main() {
 		state.PostedIndexes = []int{}
 	}
 
-	index := pickRandomQuoteIndex(state)
+	index := pickRandomQuoteIndex(quotes, state)
 	q := quotes[index]
 
 	authenticator, err := auth.NewAuthenticator(
