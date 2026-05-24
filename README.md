@@ -120,7 +120,7 @@ git push
 
 ```json
 {
-  "posted_indexes": [0, 3, 5]
+  "posted_indexes": [55]
 }
 ```
 
@@ -243,4 +243,7 @@ go run delete.go
 * 名言の順番はなるべく変更しない
 * 新規名言は末尾追加推奨
 * 長すぎる文章は投稿エラーになる可能性あり
+* 投稿失敗時は state.json を更新しません
+* workflow の同時実行防止あり
+* push競合対策あり
 * GitHub Actions の cron は UTC 基準です
