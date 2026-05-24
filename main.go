@@ -33,12 +33,12 @@ const (
 func loadQuotes() []Quote {
 	data, err := os.ReadFile(quotesFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("quotes.json読み込み失敗:", err)
 	}
 
 	var quotes []Quote
 	if err := json.Unmarshal(data, &quotes); err != nil {
-		log.Fatal(err)
+		log.Fatal("quotes.json解析失敗:", err)
 	}
 
 	return quotes
@@ -61,11 +61,11 @@ func loadState() State {
 func saveState(s State) {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("state.json変換失敗:", err)
 	}
 
 	if err := os.WriteFile(stateFile, data, 0644); err != nil {
-		log.Fatal(err)
+		log.Fatal("state.json保存失敗:", err)
 	}
 }
 
@@ -121,12 +121,12 @@ func main() {
 		os.Getenv("TOKEN_URL"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("認証設定作成失敗:", err)
 	}
 
 	authCtx, err := authenticator.AuthorizedContext(context.Background())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("認証失敗:", err)
 	}
 
 	conn, err := grpc.Dial(
@@ -134,7 +134,7 @@ func main() {
 		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("mixi2 API接続失敗:", err)
 	}
 	defer conn.Close()
 
@@ -146,7 +146,7 @@ func main() {
 		Text: text,
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("投稿失敗:", err)
 	}
 
 	state.PostedIndexes = append(state.PostedIndexes, index)
