@@ -48,3 +48,4 @@ jobs:
           git commit -m "update state"
           git pull --rebase
           git push
+          
