@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"log"
 	"math/rand"
@@ -67,10 +66,13 @@ func main() {
 		log.Fatal("認証失敗:", err)
 	}
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		os.Getenv("API_ADDRESS"),
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+		grpc.WithTransportCredentials(
+			credentials.NewClientTLSFromCert(nil, ""),
+		),
 	)
+
 	if err != nil {
 		log.Fatal("mixi2 API接続失敗:", err)
 	}
