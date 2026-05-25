@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mixigroup/mixi2-application-sdk-go/auth"
@@ -44,7 +45,8 @@ func main() {
 	index := pickRandomQuoteIndex(quotes, state)
 	q := quotes[index]
 
-	text := trimPostText(q.Text + "\n\n" + q.Author)
+	quoteText := normalizeText(q.Text)
+	text := trimPostText(quoteText + "\n\n" + q.Author)
 
 	if os.Getenv("PREVIEW") == "1" {
 		log.Println("プレビュー:")
@@ -172,4 +174,8 @@ func trimPostText(text string) string {
 	}
 
 	return string(runes[:maxLen-1]) + "…"
+}
+
+func normalizeText(text string) string {
+	return strings.ReplaceAll(text, "\\n", "\n")
 }
