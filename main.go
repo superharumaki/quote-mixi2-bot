@@ -30,6 +30,67 @@ const (
 	quotesFile = "quotes.json"
 )
 
+func main() {
+	quotes := loadQuotes()
+	if len(quotes) == 0 {
+		log.Fatal("名言が登録されていません")
+	}
+
+	state := loadState()
+
+	if len(state.PostedIndexes) >= len(quotes) {
+		state.PostedIndexes = []int{}
+	}
+
+	index := pickRandomQuoteIndex(quotes, state)
+	q := quotes[index]
+
+	text := trimPostText(q.Text + "\n\n" + q.Author)
+
+	if os.Getenv("PREVIEW") == "1" {
+		log.Println("プレビュー:")
+		log.Println(text)
+		return
+	}
+
+	authenticator, err := auth.NewAuthenticator(
+		os.Getenv("CLIENT_ID"),
+		os.Getenv("CLIENT_SECRET"),
+		os.Getenv("TOKEN_URL"),
+	)
+	if err != nil {
+		log.Fatal("認証設定作成失敗:", err)
+	}
+
+	authCtx, err := authenticator.AuthorizedContext(context.Background())
+	if err != nil {
+		log.Fatal("認証失敗:", err)
+	}
+
+	conn, err := grpc.Dial(
+		os.Getenv("API_ADDRESS"),
+		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+	)
+	if err != nil {
+		log.Fatal("mixi2 API接続失敗:", err)
+	}
+	defer conn.Close()
+
+	client := application_apiv1.NewApplicationServiceClient(conn)
+
+	_, err = client.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
+		Text: text,
+	})
+	if err != nil {
+		log.Fatal("投稿失敗:", err)
+	}
+
+	state.PostedIndexes = append(state.PostedIndexes, index)
+	saveState(state)
+
+	log.Println("投稿成功:", text)
+}
+
 func loadQuotes() []Quote {
 	data, err := os.ReadFile(quotesFile)
 	if err != nil {
@@ -104,65 +165,9 @@ func trimPostText(text string) string {
 	const maxLen = 147
 
 	runes := []rune(text)
-
 	if len(runes) <= maxLen {
 		return text
 	}
 
 	return string(runes[:maxLen-1]) + "…"
-}
-
-func main() {
-	quotes := loadQuotes()
-	if len(quotes) == 0 {
-		log.Fatal("名言が登録されていません")
-	}
-
-	state := loadState()
-
-	if len(state.PostedIndexes) >= len(quotes) {
-		state.PostedIndexes = []int{}
-	}
-
-	index := pickRandomQuoteIndex(quotes, state)
-	q := quotes[index]
-
-	authenticator, err := auth.NewAuthenticator(
-		os.Getenv("CLIENT_ID"),
-		os.Getenv("CLIENT_SECRET"),
-		os.Getenv("TOKEN_URL"),
-	)
-	if err != nil {
-		log.Fatal("認証設定作成失敗:", err)
-	}
-
-	authCtx, err := authenticator.AuthorizedContext(context.Background())
-	if err != nil {
-		log.Fatal("認証失敗:", err)
-	}
-
-	conn, err := grpc.Dial(
-		os.Getenv("API_ADDRESS"),
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
-	)
-	if err != nil {
-		log.Fatal("mixi2 API接続失敗:", err)
-	}
-	defer conn.Close()
-
-	client := application_apiv1.NewApplicationServiceClient(conn)
-
-	text := trimPostText(q.Text + "\n\n" + q.Author)
-
-	_, err = client.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
-		Text: text,
-	})
-	if err != nil {
-		log.Fatal("投稿失敗:", err)
-	}
-
-	state.PostedIndexes = append(state.PostedIndexes, index)
-	saveState(state)
-
-	log.Println("投稿成功:", text)
 }
