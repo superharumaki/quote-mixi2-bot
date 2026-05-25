@@ -59,7 +59,7 @@ func loadState() State {
 }
 
 func saveState(s State) {
-	data, err := json.MarshalIndent(s, "", "  ")
+	data, err := json.MarshalIndent(s, "", " ")
 	if err != nil {
 		log.Fatal("state.json変換失敗:", err)
 	}
@@ -75,6 +75,7 @@ func contains(list []int, target int) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -99,9 +100,20 @@ func pickRandomQuoteIndex(quotes []Quote, state State) int {
 	return available[rand.Intn(len(available))]
 }
 
+func trimPostText(text string) string {
+	const maxLen = 147
+
+	runes := []rune(text)
+
+	if len(runes) <= maxLen {
+		return text
+	}
+
+	return string(runes[:maxLen-1]) + "…"
+}
+
 func main() {
 	quotes := loadQuotes()
-
 	if len(quotes) == 0 {
 		log.Fatal("名言が登録されていません")
 	}
@@ -140,7 +152,7 @@ func main() {
 
 	client := application_apiv1.NewApplicationServiceClient(conn)
 
-	text := q.Text + "\n\n" + q.Author
+	text := trimPostText(q.Text + "\n\n" + q.Author)
 
 	_, err = client.CreatePost(authCtx, &application_apiv1.CreatePostRequest{
 		Text: text,
@@ -152,5 +164,5 @@ func main() {
 	state.PostedIndexes = append(state.PostedIndexes, index)
 	saveState(state)
 
-	log.Println("投稿成功:", q.Text)
+	log.Println("投稿成功:", text)
 }
