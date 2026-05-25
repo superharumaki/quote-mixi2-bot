@@ -6,6 +6,7 @@ mixi2 に名言を自動投稿する Bot です。
 
 * `quotes.json` から名言を読み込み
 * 未投稿の名言をランダム選択
+* 長い投稿内容は自動的に「…」で短縮
 * 投稿済みを `state.json` に記録
 * 全件投稿後に自動リセット
 * GitHub Actions で毎日自動投稿
@@ -159,7 +160,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"log"
 	"os"
 
@@ -185,9 +185,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		os.Getenv("API_ADDRESS"),
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
+		grpc.WithTransportCredentials(
+			credentials.NewClientTLSFromCert(nil, ""),
+		),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -240,7 +242,7 @@ go run delete.go
 
 ## プレビュー実行
 
-投稿せずに内容だけ確認したい場合:
+投稿せずに内容だけ確認したい場合：
 
 ```bash
 PREVIEW=1 go run .
@@ -255,5 +257,6 @@ PREVIEW=1 go run .
 * 投稿文字数制限（147文字）を超える場合、末尾を「…」にして自動短縮します
 * 投稿失敗時は state.json を更新しません
 * workflow の同時実行防止あり
+* GitHub Actions でビルドチェックを行っています
 * push競合対策あり
 * GitHub Actions の cron は UTC 基準です
