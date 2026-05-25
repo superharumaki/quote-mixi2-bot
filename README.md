@@ -10,6 +10,7 @@ mixi2 に名言を自動投稿する Bot です。
 * 投稿済みを `state.json` に記録
 * 全件投稿後に自動リセット
 * GitHub Actions で毎日自動投稿
+* `PREVIEW=1` でプレビュー実行対応
 
 ---
 
@@ -21,11 +22,11 @@ GitHub Actions の cron で毎日実行しています。
 cron: '19 21 * * *'
 ```
 
-UTC基準なので、日本時間では朝6時19分ごろ実行されます。
+UTC 基準なので、日本時間では朝 6:19 ごろ実行されます。
 
 ---
 
-# 必要なSecrets
+# 必要な Secrets
 
 GitHub：
 
@@ -117,7 +118,11 @@ git push
 
 `state.json` で投稿済み名言を管理しています。
 
+※ `posted_indexes` は 0 始まりです。
 例：
+
+* `0` → 1番目
+* `60` → 61番目
 
 ```json
 {
@@ -151,7 +156,7 @@ git push
 
 # 投稿削除方法
 
-mixi2 の投稿IDが分かっている場合、ターミナルから削除できます。
+mixi2 の投稿 ID が分かっている場合、ターミナルから削除できます。
 
 ## 1. delete.go を作成
 
@@ -240,7 +245,20 @@ go run delete.go
 
 ---
 
-## プレビュー実行
+## 4. delete.go を削除
+
+削除が終わったら、`delete.go` は必ず削除します。
+
+```bash
+rm -f delete.go
+git status
+```
+
+`delete.go` は一時ファイルなので、GitHub に commit しないでください。
+
+---
+
+# プレビュー実行
 
 投稿せずに内容だけ確認したい場合：
 
@@ -255,8 +273,8 @@ PREVIEW=1 go run .
 * 名言の順番はなるべく変更しない
 * 新規名言は末尾追加推奨
 * 投稿文字数制限（147文字）を超える場合、末尾を「…」にして自動短縮します
-* 投稿失敗時は state.json を更新しません
+* 投稿失敗時は `state.json` を更新しません
 * workflow の同時実行防止あり
 * GitHub Actions でビルドチェックを行っています
-* push競合対策あり
+* push 競合対策あり
 * GitHub Actions の cron は UTC 基準です
