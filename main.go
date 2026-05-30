@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/mixigroup/mixi2-application-sdk-go/auth"
 	application_apiv1 "github.com/mixigroup/mixi2-application-sdk-go/gen/go/social/mixi/application/service/application_api/v1"
@@ -160,7 +159,6 @@ func pickRandomQuoteIndex(quotes []Quote, state State) int {
 		}
 	}
 
-	rand.Seed(time.Now().UnixNano())
 
 	return available[rand.Intn(len(available))]
 }
