@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"strings"
 
@@ -15,6 +15,11 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+const (
+	stateFile  = "state.json"
+	quotesFile = "quotes.json"
+)
+
 type Quote struct {
 	Text   string `json:"text"`
 	Author string `json:"author"`
@@ -23,11 +28,6 @@ type Quote struct {
 type State struct {
 	PostedIndexes []int `json:"posted_indexes"`
 }
-
-const (
-	stateFile  = "state.json"
-	quotesFile = "quotes.json"
-)
 
 func main() {
 	quotes := loadQuotes()
@@ -41,7 +41,9 @@ func main() {
 		state.PostedIndexes = []int{}
 	}
 
-	index := pickRandomQuoteIndex(quotes, state)
+	posted := buildPostedMap(state)
+
+	index := pickRandomQuoteIndex(quotes, posted)
 	q := quotes[index]
 
 	quoteText := normalizeText(q.Text)
@@ -54,9 +56,9 @@ func main() {
 	}
 
 	authenticator, err := auth.NewAuthenticator(
-		os.Getenv("CLIENT_ID"),
-		os.Getenv("CLIENT_SECRET"),
-		os.Getenv("TOKEN_URL"),
+		requireEnv("CLIENT_ID"),
+		requireEnv("CLIENT_SECRET"),
+		requireEnv("TOKEN_URL"),
 	)
 	if err != nil {
 		log.Fatal("認証設定作成失敗:", err)
@@ -68,12 +70,11 @@ func main() {
 	}
 
 	conn, err := grpc.NewClient(
-		os.Getenv("API_ADDRESS"),
+		requireEnv("API_ADDRESS"),
 		grpc.WithTransportCredentials(
 			credentials.NewClientTLSFromCert(nil, ""),
 		),
 	)
-
 	if err != nil {
 		log.Fatal("mixi2 API接続失敗:", err)
 	}
@@ -92,6 +93,15 @@ func main() {
 	saveState(state)
 
 	log.Println("投稿成功:", text)
+}
+
+func requireEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatal(key + " missing value")
+	}
+
+	return value
 }
 
 func loadQuotes() []Quote {
@@ -123,7 +133,7 @@ func loadState() State {
 }
 
 func saveState(s State) {
-	data, err := json.MarshalIndent(s, "", " ")
+	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		log.Fatal("state.json変換失敗:", err)
 	}
@@ -133,21 +143,21 @@ func saveState(s State) {
 	}
 }
 
-func contains(list []int, target int) bool {
-	for _, v := range list {
-		if v == target {
-			return true
-		}
+func buildPostedMap(state State) map[int]bool {
+	posted := make(map[int]bool, len(state.PostedIndexes))
+
+	for _, index := range state.PostedIndexes {
+		posted[index] = true
 	}
 
-	return false
+	return posted
 }
 
-func pickRandomQuoteIndex(quotes []Quote, state State) int {
+func pickRandomQuoteIndex(quotes []Quote, posted map[int]bool) int {
 	available := []int{}
 
 	for i := range quotes {
-		if !contains(state.PostedIndexes, i) {
+		if !posted[i] {
 			available = append(available, i)
 		}
 	}
@@ -159,11 +169,11 @@ func pickRandomQuoteIndex(quotes []Quote, state State) int {
 		}
 	}
 
-
-	return available[rand.Intn(len(available))]
+	return available[rand.IntN(len(available))]
 }
 
 func trimPostText(text string) string {
+	// mixi2投稿本文の上限に収まるようにするための最大文字数
 	const maxLen = 147
 
 	runes := []rune(text)
